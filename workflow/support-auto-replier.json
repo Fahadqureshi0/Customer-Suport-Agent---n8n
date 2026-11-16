@@ -1,0 +1,689 @@
+{
+  "name": "Support Auto-Replier",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "maxResults": 3,
+        "filters": {
+          "q": "is:unread -from:me -label:ai-handled -category:promotions -category:updates -category:social"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -320,
+        -160
+      ],
+      "id": "df70b62b-e065-4183-a1df-c4d6b5627afb",
+      "name": "Gmail Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ec4d086a-0631-44af-85f1-ff141631b7cf",
+              "name": "=from_email",
+              "value": "={{ $json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "e90a096e-9b69-4ebe-9c47-38e2f7e9f0ee",
+              "name": "=subject",
+              "value": "={{ $json.Subject }}",
+              "type": "string"
+            },
+            {
+              "id": "7f65a0fe-1ae4-42d1-860a-4ba58eccc6d4",
+              "name": "=body",
+              "value": "={{ $json.text || $json.snippet }}",
+              "type": "string"
+            },
+            {
+              "id": "108fc51a-1d7d-4b1f-8053-f89911aa743e",
+              "name": "=message_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "5c8df427-4861-440c-8410-51e1f9e7a8e4",
+              "name": "thread_id",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -192,
+        0
+      ],
+      "id": "b6455c19-deaa-46c3-ba4e-cae776032161",
+      "name": "Gmail Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "5044b691-da48-4734-952f-b2ccc231086a",
+              "leftValue": "={{ $json.from_email.toLowerCase() }}",
+              "rightValue": "noreply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "8f873b32-0441-4f4d-8f18-b4d2d502aad1",
+              "leftValue": "={{ $json.from_email.toLowerCase() }}",
+              "rightValue": "no-reply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -48,
+        -176
+      ],
+      "id": "215204e3-b653-4be5-a762-0da5faf5c57d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_FAQ_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        96,
+        32
+      ],
+      "id": "bb826a58-f7df-4b61-b47e-13cd1c082fc0",
+      "name": "Get row(s) in sheet"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nlet text = \"\";\n\nfor (const row of rows) {\n  text = text + \"Category: \" + row.json.Category + \"\\n\";\n  text = text + \"Q: \" + row.json.Question + \"\\n\";\n  text = text + \"A: \" + row.json.Answer + \"\\n\\n\";\n}\n\nreturn [{ json: { faq_text: text } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -176
+      ],
+      "id": "b4a36ee7-8447-4db3-9c61-5a2284d8a55b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Customer email:\nSubject: {{ $('Gmail Fields').item.json.subject }}\nBody: {{ $('Gmail Fields').item.json.body }}\n\nFAQ:\n{{ $json.faq_text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a customer support assistant.\n\nAnswer ONLY using the FAQ. Never invent prices, policies, dates or promises.\nNever promise that the team will do something or reply by a certain time.\n\ncategory must be exactly one of:\nShipping, Returns, Account, Pricing, Billing, Support, Other\n\ncan_answer is true only if the FAQ clearly answers the question.\nconfidence means how sure you are that the FAQ fully answers the question.\nIf can_answer is false, confidence must be below 0.3 and reply must be an empty string.\n\nSet needs_human to true for refunds, legal threats, angry customers,\nor anything about account security.\n\nWhen can_answer is true, write a short, polite reply in the customer's language\nusing only facts from the FAQ."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        288,
+        0
+      ],
+      "id": "1b1ff772-5c4c-4580-ac78-a06517b426e0",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        224,
+        144
+      ],
+      "id": "937040b5-1760-4d76-8f1b-c2fa3394bf44",
+      "name": "Groq Chat Model"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"can_answer\": true,\n  \"needs_human\": false,\n  \"category\": \"Shipping\",\n  \"confidence\": 0.9,\n  \"reply\": \"Hello! Standard shipping takes 5-7 business days.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        144
+      ],
+      "id": "c6547e6a-7019-4e67-baf3-047659edebeb",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "efbf8926-cc87-4206-9e1f-066445a52684",
+              "leftValue": "={{ $json.output.can_answer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "57ef4d2a-dc6c-4019-aa96-5cb08009368f",
+              "leftValue": "={{ $json.output.needs_human }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "80c2735f-dad3-480c-9324-91d286061b5b",
+              "leftValue": "={{ $json.output.confidence }}",
+              "rightValue": 0.8,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        560,
+        -224
+      ],
+      "id": "c1508ab2-dbc2-4933-bc38-5100b5975be5",
+      "name": "safe to auto-reply"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Gmail Fields').item.json.subject }}",
+        "message": "={{ $json.output.reply }}",
+        "options": {
+          "threadId": "={{ $('Gmail Fields').item.json.thread_id }}",
+          "sendTo": "={{ $('Gmail Fields').item.json.from_email }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        -256
+      ],
+      "id": "8d633b44-8dcb-48ec-bbd5-c12bcdf3407c",
+      "name": "Create a draft"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "=:rotating_light: *Needs human review*\n*From:* {{ $('Gmail Fields').item.json.from_email }}\n*Subject:* {{ $('Gmail Fields').item.json.subject }}\n*Category:* {{ $json.output.category }}\n*Confidence:* {{ $json.output.confidence }}\n\n*Suggested draft:*\n{{ $json.output.reply || \"No draft. The FAQ has no answer for this email.\" }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        768,
+        -32
+      ],
+      "id": "ad738fa8-4be8-4b36-8656-001af31604a5",
+      "name": "Send a message"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Fields').item.json.message_id }}",
+        "labelIds": [
+          "YOUR_AI_HANDLED_LABEL_ID",
+          "YOUR_NEEDS_HUMAN_LABEL_ID"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        992,
+        -32
+      ],
+      "id": "cc816c86-b0ac-47d9-9582-0d60365548f4",
+      "name": "Add label to message"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Fields').item.json.message_id }}",
+        "labelIds": [
+          "YOUR_AI_HANDLED_LABEL_ID"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        -256
+      ],
+      "id": "5e12ff9e-eed0-4686-9462-eb906ea7aa0d",
+      "name": "Add label to message2"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SUPPORT_LOG_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "time": "={{ $now.toISO() }}",
+            "from": "={{ $('Gmail Fields').item.json.from_email }}",
+            "subject": "={{ $('Gmail Fields').item.json.subject }}",
+            "category": "={{ $('Basic LLM Chain').item.json.output.category }}",
+            "confidence": "={{ $('Basic LLM Chain').item.json.output.confidence }}",
+            "decision": "human"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "from",
+              "displayName": "from",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1216,
+        -32
+      ],
+      "id": "f196f178-f02e-4ac2-baff-a274fc834a91",
+      "name": "Append row in sheet"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SUPPORT_LOG_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "time": "={{ $now.toISO() }}",
+            "from": "={{ $('Gmail Fields').item.json.from_email }}",
+            "subject": "={{ $('Gmail Fields').item.json.subject }}",
+            "category": "={{ $('Basic LLM Chain').item.json.output.category }}",
+            "confidence": "={{ $('Basic LLM Chain').item.json.output.confidence }}",
+            "decision": "auto-draft"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "from",
+              "displayName": "from",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1264,
+        -256
+      ],
+      "id": "3a71f040-a5fd-4008-b7d1-c840b68bf5f0",
+      "name": "Append row in sheet1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "safe to auto-reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "safe to auto-reply": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft": {
+      "main": [
+        [
+          {
+            "node": "Add label to message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message2": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

@@ -1,0 +1,21 @@
+ID,Category,Question,Answer
+1,Shipping,How long does standard shipping take?,Standard shipping takes 5-7 business days.
+2,Shipping,Do you offer express shipping?,"Yes, express shipping takes 2-3 business days and costs $14.99."
+3,Shipping,Do you ship internationally?,"Yes, we ship to over 40 countries. Delivery takes 10-21 business days."
+4,Shipping,How can I track my order?,"Use the tracking link in your confirmation email or log in and open ""My Orders""."
+5,Shipping,Is shipping free?,Orders over $50 qualify for free standard shipping.
+6,Returns,What is your return policy?,You can return unused items within 30 days of delivery for a full refund.
+7,Returns,How do I start a return?,"Go to ""My Orders"", select the item, and click ""Return Item"" to print a prepaid label."
+8,Returns,How long do refunds take?,Refunds are issued within 5-10 business days after we receive the item.
+9,Returns,Can I exchange an item?,"Yes, exchanges are free within 30 days, subject to stock availability."
+10,Account,How do I reset my password?,"Click ""Forgot Password"" on the login page and follow the link sent to your email."
+11,Account,The password reset email didn't arrive. What now?,"Check your spam folder, wait 10 minutes, then request a new link."
+12,Account,How do I change my email address?,Go to Settings > Profile > Email and confirm the change via the verification link.
+13,Account,How do I delete my account?,Contact support or go to Settings > Privacy > Delete Account. Deletion is permanent.
+14,Pricing,How much does the Basic plan cost?,The Basic plan is $9/month or $90/year.
+15,Pricing,What is included in the Pro plan?,"Pro is $29/month and includes unlimited projects, priority support, and analytics."
+16,Pricing,Do you offer discounts?,"Yes, annual plans save 15%, and students and nonprofits get 20% off."
+17,Pricing,Is there a free trial?,"Yes, all paid plans include a 14-day free trial. No credit card is required."
+18,Billing,What payment methods do you accept?,"We accept Visa, Mastercard, American Express, PayPal, and Apple Pay."
+19,Billing,Can I cancel my subscription anytime?,"Yes, cancel anytime in Settings > Billing. You keep access until the period ends."
+20,Support,How can I contact customer support?,"Email support@example.com or use live chat, Monday-Friday, 9am-6pm."
