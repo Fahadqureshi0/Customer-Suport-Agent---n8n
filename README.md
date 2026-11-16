@@ -4,13 +4,13 @@ An n8n workflow that reads new support emails in Gmail, answers them from a comp
 
 By default it saves replies as **Gmail drafts**, so nothing is sent to a customer until you decide to switch it on.
 
-![Workflow canvas](docs/canvas.png)
+![Workflow canvas](docs/n8n-canvas)
 
 ## Demo
 
 A short walkthrough of the workflow running on real emails:
 
-[Watch the demo video](docs/demo.mp4)
+[Watch the demo video](docs/Customer-Support-Agent-demo)
 
 <!-- While editing this file on GitHub, drag demo.mp4 onto the empty line below. GitHub inserts the video link there and shows a player. -->
 
